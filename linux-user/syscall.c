@@ -308,6 +308,14 @@ _syscall0(int, sys_gettid)
 #define EMULATE_GETDENTS_WITH_GETDENTS
 #endif
 
+#if defined(TARGET_NR_io_uring_setup)
+#define __NR_sys_io_uring_setup TARGET_NR_io_uring_setup
+#endif
+
+#if defined(TARGET_NR_io_uring_enter)
+#define __NR_sys_io_uring_enter TARGET_NR_io_uring_enter
+#endif
+
 #if defined(TARGET_NR_getdents) && defined(EMULATE_GETDENTS_WITH_GETDENTS)
 _syscall3(int, sys_getdents, unsigned int, fd, struct linux_dirent *, dirp, unsigned int, count);
 #endif
@@ -9194,6 +9202,14 @@ _syscall5(int, sys_move_mount, int, __from_dfd, const char *, __from_pathname,
            int, __to_dfd, const char *, __to_pathname, unsigned int, flag)
 #endif
 
+#if defined(TARGET_NR_io_uring_setup)
+_syscall2(target_ulong, sys_io_uring_setup, target_ulong, arg1, target_ulong, arg2)
+#endif
+
+#if defined(TARGET_NR_io_uring_enter)
+_syscall5(target_ulong, sys_io_uring_enter, target_ulong, arg1, target_ulong, arg2,
+            target_ulong, arg3, target_ulong, arg4, target_ulong, arg5)
+#endif
 /* This is an internal helper for do_syscall so that it is easier
  * to have a single return point, so that actions, such as logging
  * of syscall results, can be performed.
@@ -13854,12 +13870,30 @@ static abi_long do_syscall1(CPUArchState *cpu_env, int num, abi_long arg1,
     case TARGET_NR_riscv_hwprobe:
         return do_riscv_hwprobe(cpu_env, arg1, arg2, arg3, arg4, arg5);
 #endif
-
+#if defined(TARGET_NR_io_uring_setup)
+    case TARGET_NR_io_uring_setup:
+    {
+        return get_errno(sys_io_uring_setup(arg1, arg2));
+    }
+#endif
+#if defined(TARGET_NR_io_uring_enter)
+    case TARGET_NR_io_uring_enter:
+    {
+        return get_errno(sys_io_uring_enter(arg1, arg2, arg3, arg4, arg5));
+    }
+#endif
+#if defined(TARGET_NR_io_uring_register)
+    case TARGET_NR_io_uring_register:
+    {
+        return -TARGET_EOPNOTSUPP;
+    }
+#endif
     default:
         qemu_log_mask(LOG_UNIMP, "Unsupported syscall: %d\n", num);
         return -TARGET_ENOSYS;
     }
     return ret;
+
 }
 
 abi_long do_syscall(CPUArchState *cpu_env, int num, abi_long arg1,
