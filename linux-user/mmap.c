@@ -452,9 +452,36 @@ abi_long target_mmap(abi_ulong start, abi_ulong len, int target_prot,
     abi_ulong passthrough_start = -1, passthrough_last = 0;
     int page_flags;
     off_t host_offset;
+    struct stat statbuf;
 
     mmap_lock();
     trace_target_mmap(start, len, target_prot, flags, fd, offset);
+    /*
+     * Special treatment for file descriptors whose
+     * stat mode masked with S_IFMT returns 0.
+     * Hacky way to differentiate io_uring buffer
+     * file descriptors, since no other type of fd
+     * returns this sort of stat type
+     * Are there any other cases which cause this?
+     * This is required as mmap isn't too happy with trying to map
+     * io_uring ring buffer file descriptors
+     * when you try to provide a fixed or hint address
+     */
+
+    if (fstat(fd, &statbuf) != -1 && (statbuf.st_mode & S_IFMT) == 0) {
+
+        void *addr = mmap(NULL, len, target_prot, flags, fd, offset);
+        if (addr == MAP_FAILED) {
+            errno = EINVAL;
+            goto fail;
+        }
+        /* VERY HACKY: Essentially subtracting guest base
+         * from real host address and hoping for the best
+         * This is entirely broken when you run 32 bit targets on 64 bit hosts.
+         */
+        start = h2g_nocheck(addr);
+        goto the_end;
+    }
 
     if (!len) {
         errno = EINVAL;
