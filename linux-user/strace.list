@@ -1710,3 +1710,9 @@
 { TARGET_NR_clock_gettime64, "clock_gettime64" , NULL, print_clock_gettime64,
                            print_syscall_ret_clock_gettime64 },
 #endif
+#ifdef TARGET_NR_io_uring_setup
+{ TARGET_NR_io_uring_setup, "io_uring_setup","%s(%d,%p)", NULL, NULL },
+#endif
+#ifdef TARGET_NR_io_uring_enter
+{ TARGET_NR_io_uring_enter, "io_uring_enter","%s(%d,%d,%d,%d,%p,%d)", NULL, NULL },
+#endif
